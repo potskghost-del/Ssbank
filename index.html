@@ -2,18 +2,18 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>EvoWars Emoji Edition v2 - With Account & Shop</title>
-    
-    <!-- Nhúng thư viện Firebase -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSBank - Ngân Hàng Nội Bộ Trực Tuyến</title>
+    <!-- Nhúng thư viện Firebase tương thích bản Web Module -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getDatabase, ref, get, child, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+        import { getDatabase, ref, set, get, update, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+        // Cấu hình Firebase của bạn
         const firebaseConfig = {
             apiKey: "AIzaSyDHVvVLJOyOGKlhFuLxc36CATaGq9J9M6U",
             authDomain: "ssbank-3c7a9.firebaseapp.com",
-            databaseURL: "https://ssbank-3c7a9-default-rtdb.firebaseio.com",
+            databaseURL: "https://ssbank-3c7a9-default-rtdb.firebaseio.com", // Firebase Realtime DB URL tự động suy luận
             projectId: "ssbank-3c7a9",
             storageBucket: "ssbank-3c7a9.firebasestorage.app",
             messagingSenderId: "325704309620",
@@ -21,904 +21,902 @@
             measurementId: "G-EZ75QFPYT5"
         };
 
+        // Khởi tạo Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        // Xuất ra phạm vi window để các hàm HTML/JS bên dưới gọi được
+        window.db = db;
         window.dbRef = ref(db);
+        window.dbSet = set;
+        window.dbUpdate = update;
         window.dbGet = get;
         window.dbChild = child;
-        window.dbUpdate = update;
+        window.dbRefPath = ref;
+
+        // Tải dữ liệu ban đầu từ Firebase
+        loadOnlineData();
     </script>
 
     <style>
+        :root {
+            --primary: #ff416c;
+            --secondary: #ff4b2b;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text: #333;
+        }
+
         * {
             box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
             margin: 0;
             padding: 0;
-        }
-        body, html {
-            overflow: hidden;
-            width: 100%;
-            height: 100%;
-            background-color: #0b0c10;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        canvas {
+
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text);
+        }
+
+        .container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 500px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Forms (Login/Register) */
+        .auth-container {
+            padding: 40px 30px;
+        }
+        
+        .auth-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .switch-link {
+            text-align: center;
+            margin-top: 15px;
+            cursor: pointer;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        /* Dashboard App */
+        .app-container {
+            display: none;
+            height: 650px;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            user-select: none;
+        }
+
+        header h1 {
+            cursor: pointer;
+        }
+
+        .nav-bar {
+            display: flex;
+            background: #eee;
+        }
+
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            font-size: 0.85em;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: white;
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
             display: block;
         }
-        /* Bản đồ con góc trái */
-        #minimap {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            width: 130px;
-            height: 130px;
-            background: rgba(10, 10, 25, 0.75);
-            border: 2px solid #1f2833;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            z-index: 5;
+
+        .card {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+            padding: 20px;
+            border-radius: 15px;
+            color: #333;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        #minimapCanvas { width: 100%; height: 100%; }
-        /* Bảng xếp hạng */
-        #leaderboard {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(10, 10, 25, 0.8);
-            color: #c5a059;
-            padding: 12px 18px;
-            border-radius: 8px;
-            font-size: 13px;
-            min-width: 180px;
-            border: 1px solid #45f3ff;
-            box-shadow: 0 0 15px rgba(69, 243, 255, 0.1);
-            z-index: 5;
+
+        .card h3 { font-size: 1em; color: #555; }
+        .card .balance { font-size: 2.5em; font-weight: bold; margin: 10px 0; color: var(--primary); }
+        .card .vnd { font-size: 1.2em; font-weight: bold; color: #667eea; }
+
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
         }
-        #leaderboard h3 { 
-            margin: 0 0 8px 0; 
-            font-size: 14px; 
-            text-align: center; 
-            color: #45f3ff;
-            letter-spacing: 1px;
+
+        .history-item.plus { color: green; }
+        .history-item.minus { color: red; }
+
+        #receiver-name, #admin-target-name {
+            color: var(--primary);
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
         }
-        #leaderboard ol { margin: 0; padding-left: 18px; }
-        #leaderboard li { margin-bottom: 4px; color: #fff; font-weight: 500;}
         
-        /* Giao diện cấp độ phía dưới */
-        #ui-bar {
+        .logout-btn {
             position: absolute;
-            bottom: 25px;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* Notification */
+        #notification {
+            position: fixed;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
+            background: #333;
             color: white;
-            text-align: center;
-            pointer-events: none;
-            z-index: 5;
-        }
-        #playerStats {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 6px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            color: #45f3ff;
-        }
-        #levelBar {
-            width: 280px;
-            height: 14px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 7px;
-            overflow: hidden;
-            border: 1.5px solid #fff;
-            box-shadow: 0 0 8px rgba(0,0,0,0.5);
-        }
-        #levelProgress {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #00ffcc, #45f3ff);
-            transition: width 0.1s ease;
-        }
-
-        /* Nút điều khiển Mobile / Touch */
-        .control-btn {
-            position: absolute;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            z-index: 10;
-            touch-action: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-        /* Joystick đa hướng di chuyển */
-        #joystick-zone {
-            position: absolute;
-            bottom: 40px;
-            left: 40px;
-            width: 130px;
-            height: 130px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px dashed rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            touch-action: none;
-            z-index: 10;
-        }
-        #joystick-stick {
-            width: 55px;
-            height: 55px;
-            background: rgba(255, 255, 255, 0.55);
-            position: absolute;
-            top: 37.5px;
-            left: 37.5px;
-            border-radius: 50%;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
-        }
-        /* Nút Tốc độ & Đánh */
-        #btn-attack {
-            bottom: 50px;
-            right: 40px;
-            width: 75px;
-            height: 75px;
-            font-size: 32px;
-            background: rgba(255, 46, 99, 0.6);
-            border: 2px solid rgba(255, 46, 99, 0.9);
-        }
-        #btn-boost {
-            bottom: 60px;
-            right: 135px;
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
-            background: rgba(255, 211, 105, 0.6);
-            border: 2px solid rgba(255, 211, 105, 0.9);
-        }
-
-        /* ================= GIAO DIỆN HỆ THỐNG MENU ================= */
-        #game-ui {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(11, 12, 16, 0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
-        .ui-panel {
-            background: #1f2833;
-            border: 2px solid #45f3ff;
-            border-radius: 12px;
-            padding: 30px;
-            width: 350px;
-            box-shadow: 0 0 20px rgba(69, 243, 255, 0.2);
-            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
             display: none;
-            text-align: center;
+            z-index: 1000;
         }
-        .ui-panel.active { display: block; }
-        .ui-panel h2 { color: #45f3ff; margin-bottom: 20px; }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group label { display: block; margin-bottom: 5px; font-size: 14px; }
-        .input-group input {
-            width: 100%; padding: 10px; border-radius: 6px;
-            border: 1px solid #45f3ff; background: #0b0c10; color: white;
-            outline: none;
+
+        /* Thêm style riêng cho các nút đổi mệnh giá nhanh */
+        .denomination-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
         }
-        .btn {
-            width: 100%; padding: 12px; margin-bottom: 10px;
-            background: #45f3ff; color: #0b0c10; font-weight: bold;
-            border: none; border-radius: 6px; cursor: pointer;
+
+        .btn-demo {
+            padding: 10px;
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
             transition: 0.2s;
         }
-        .btn:hover { background: #00ffcc; }
-        .btn-secondary { background: #2a3644; color: white; border: 1px solid #45f3ff; }
-        .btn-secondary:hover { background: #3b4b5e; }
-        
-        .shop-item {
-            background: #0b0c10; border: 1px solid #45f3ff;
-            padding: 10px; border-radius: 6px; margin-bottom: 10px;
-            display: flex; justify-content: space-between; align-items: center;
+
+        .btn-demo:hover {
+            border-color: var(--primary);
+            background: #fff0f2;
+            color: var(--primary);
         }
-        .shop-item span { font-size: 14px; text-align: left; flex: 1; margin-right: 10px;}
-        .shop-item button { width: 80px; padding: 5px; margin: 0; }
-        .text-link { color: #45f3ff; text-decoration: underline; cursor: pointer; font-size: 14px; margin-top: 15px; display: inline-block; }
-        #info-text { margin-bottom: 20px; font-size: 16px; color: #c5a059; }
     </style>
 </head>
 <body>
 
-    <canvas id="gameCanvas"></canvas>
-    
-    <div id="minimap"><canvas id="minimapCanvas"></canvas></div>
-    <div id="leaderboard"><h3>TOP CAO THỦ</h3><ol id="leaderList"></ol></div>
-    <div id="ui-bar">
-        <div id="playerStats">Cấp độ: 1 | Danh hiệu: Đang tải...</div>
-        <div id="levelBar"><div id="levelProgress"></div></div>
+    <div id="notification">Thông báo</div>
+
+    <div class="container">
+        <!-- Khu vực đăng nhập / đăng ký -->
+        <div id="auth-section" class="auth-container">
+            <div id="login-form">
+                <h2>Đăng Nhập SSBank</h2>
+                <div class="input-group">
+                    <label>Số tài khoản (6 số)</label>
+                    <input type="text" id="login-acc" placeholder="VD: 000001">
+                </div>
+                <div class="input-group">
+                    <label>Mật khẩu</label>
+                    <input type="password" id="login-pass" placeholder="Nhập mật khẩu">
+                </div>
+                <div class="input-group">
+                    <label>Mã bảo mật (6 chữ số)</label>
+                    <input type="password" id="login-pin" maxlength="6" placeholder="Nhập mã bảo mật">
+                </div>
+                <button class="btn" onclick="login()">Đăng Nhập</button>
+                <div class="switch-link" onclick="toggleAuth()">Bạn chưa có tk, đăng kí ngay</div>
+            </div>
+
+            <div id="register-form" style="display: none;">
+                <h2>Đăng Ký SSBank</h2>
+                <div class="input-group">
+                    <label>Họ và Tên</label>
+                    <input type="text" id="reg-name" placeholder="Nhập họ và tên">
+                </div>
+                <div class="input-group">
+                    <label>Mật khẩu</label>
+                    <input type="password" id="reg-pass" placeholder="Nhập mật khẩu">
+                </div>
+                <div class="input-group">
+                    <label>Mã bảo mật (6 chữ số)</label>
+                    <input type="password" id="reg-pin" maxlength="6" placeholder="Nhập 6 số bảo mật">
+                </div>
+                <button class="btn" onclick="register()">Đăng Ký</button>
+                <div class="switch-link" onclick="toggleAuth()">Đã có tài khoản? Đăng nhập</div>
+            </div>
+        </div>
+
+        <!-- Ứng dụng chính -->
+        <div id="app-section" class="app-container">
+            <header>
+                <h1 id="logo" onclick="handleLogoClick()">SSBank</h1>
+                <button class="logout-btn" onclick="logout()">Đăng xuất</button>
+            </header>
+            
+            <div class="nav-bar">
+                <div class="nav-item active" onclick="switchTab('home')">Trang chủ</div>
+                <div class="nav-item" onclick="switchTab('transfer')">Chuyển tiền</div>
+                <div class="nav-item" onclick="switchTab('history')">Lịch sử</div>
+                <div class="nav-item" onclick="switchTab('code')">Nhập mã</div>
+                <div class="nav-item" onclick="switchTab('lottery')">Vé số</div>
+                <div class="nav-item" onclick="switchTab('gamecode')">Mã game</div>
+            </div>
+
+            <div class="content-area">
+                <!-- Trang chủ -->
+                <div id="tab-home" class="tab-content active">
+                    <div class="card">
+                        <h3>Số dư khả dụng:</h3>
+                        <div class="balance"><span id="ui-balance">0</span> Points</div>
+                        <div class="vnd">~ <span id="ui-vnd">0</span> VNĐ</div>
+                    </div>
+                    <div class="card" style="background: #f8f9fa;">
+                        <p><strong>Họ và tên:</strong> <span id="ui-name"></span></p>
+                        <p><strong>Số tài khoản:</strong> <span id="ui-acc"></span></p>
+                    </div>
+                </div>
+
+                <!-- Chuyển tiền -->
+                <div id="tab-transfer" class="tab-content">
+                    <h2>Chuyển tiền</h2>
+                    <br>
+                    <div class="input-group">
+                        <label>Số tài khoản người nhận</label>
+                        <input type="text" id="trans-acc" oninput="lookupReceiver()" placeholder="Nhập STK nhận">
+                        <span id="receiver-name"></span>
+                    </div>
+                    <div class="input-group">
+                        <label>Số tiền (Points)</label>
+                        <input type="number" id="trans-amount" placeholder="Nhập số points cần chuyển">
+                    </div>
+                    <div class="input-group">
+                        <label>Mật khẩu</label>
+                        <input type="password" id="trans-pass">
+                    </div>
+                    <div class="input-group">
+                        <label>Mã bảo mật</label>
+                        <input type="password" id="trans-pin" maxlength="6">
+                    </div>
+                    <button class="btn" onclick="transferMoney()">Chuyển Tiền</button>
+                </div>
+
+                <!-- Lịch sử -->
+                <div id="tab-history" class="tab-content">
+                    <h2>Lịch sử giao dịch</h2>
+                    <br>
+                    <div id="history-list"></div>
+                </div>
+
+                <!-- Đổi mã -->
+                <div id="tab-code" class="tab-content">
+                    <h2>Nhập mã thưởng ngân hàng</h2>
+                    <br>
+                    <div class="input-group">
+                        <label>Nhập mã</label>
+                        <input type="text" id="gift-code-input" placeholder="Nhập mã giới hạn hoặc mã vé số">
+                    </div>
+                    <button class="btn" onclick="redeemCode()">Nhận Thưởng</button>
+                </div>
+
+                <!-- Vé số -->
+                <div id="tab-lottery" class="tab-content">
+                    <h2>Vé số may mắn</h2>
+                    <p style="margin: 10px 0; color: #555;">Giá: <strong>10 Points</strong> / 1 vé</p>
+                    <ul style="margin-left: 20px; font-size: 0.9em; margin-bottom: 15px; line-height: 1.6;">
+                        <li>Trúng 1000 Points: 2%</li>
+                        <li>Trúng 100 Points: 3%</li>
+                        <li>Trúng 50 Points: 5%</li>
+                        <li>Trúng 25 Points: 7%</li>
+                        <li>Trúng 20 Points: 8%</li>
+                        <li>Trúng 10 Points: 15%</li>
+                        <li>Chúc may mắn lần sau: 60%</li>
+                    </ul>
+                    <button class="btn" onclick="buyLottery()">Mua Vé Ngay</button>
+                    <div id="lottery-result" style="margin-top: 20px; font-weight: bold; text-align: center; color: var(--primary);"></div>
+                </div>
+
+                <!-- Mã game -->
+                <div id="tab-gamecode" class="tab-content">
+                    <h2>Đổi Points ra mã game</h2>
+                    <p style="margin: 5px 0 15px 0; font-size: 0.9em; color: #666;">Chọn mệnh giá để tạo mã nạp game (Trừ points ngân hàng):</p>
+                    <div class="denomination-grid">
+                        <button class="btn-demo" onclick="generateGameCode(10)">10 Pts</button>
+                        <button class="btn-demo" onclick="generateGameCode(20)">20 Pts</button>
+                        <button class="btn-demo" onclick="generateGameCode(50)">50 Pts</button>
+                        <button class="btn-demo" onclick="generateGameCode(100)">100 Pts</button>
+                        <button class="btn-demo" onclick="generateGameCode(200)">200 Pts</button>
+                        <button class="btn-demo" onclick="generateGameCode(500)">500 Pts</button>
+                    </div>
+                    <div class="input-group" style="margin-bottom: 25px;">
+                        <label>Mã game vừa tạo của bạn:</label>
+                        <input type="text" id="generated-game-code" readonly placeholder="Mã nạp game sẽ xuất hiện ở đây" style="text-align: center; font-weight: bold; color: var(--primary); border: 2px dashed var(--primary); background: #fff5f6;">
+                    </div>
+                </div>
+
+                <!-- Admin (Ẩn) -->
+                <div id="tab-admin" class="tab-content">
+                    <h2 style="color: red;">Admin Panel</h2>
+                    <br>
+                    <div id="admin-login">
+                        <input type="password" id="admin-pass" placeholder="Nhập mật khẩu Admin" style="width:100%; padding: 10px; margin-bottom: 10px;">
+                        <button class="btn" onclick="verifyAdmin()">Xác nhận</button>
+                    </div>
+                    <div id="admin-controls" style="display: none;">
+                        <div class="input-group">
+                            <label>STK Mục Tiêu</label>
+                            <input type="text" id="admin-acc" oninput="lookupAdminTarget()">
+                            <span id="admin-target-name"></span>
+                        </div>
+                        <div class="input-group">
+                            <label>Số tiền (+ hoặc -)</label>
+                            <input type="number" id="admin-amount" placeholder="Ví dụ: 100 hoặc -50">
+                        </div>
+                        <button class="btn" onclick="adminExecute()">Thực Thi</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Nút điều khiển -->
-    <div id="joystick-zone"><div id="joystick-stick"></div></div>
-    <div id="btn-boost" class="control-btn">⚡</div>
-    <div id="btn-attack" class="control-btn">⚔️</div>
+    <script>
+        // --- DATA MANAGEMENT ---
+        let users = [];
+        let currentUser = null;
+        let giftCodes = { 'ABC123': 20 };
+        let lotteryCodes = {}; 
 
-    <!-- HỆ THỐNG MENU ĐÈ LÊN GAME -->
-    <div id="game-ui">
-        
-        <!-- ĐĂNG NHẬP / ĐĂNG KÝ -->
-        <div id="panel-auth" class="ui-panel active">
-            <h2>Đăng Nhập Game</h2>
-            <div class="input-group">
-                <label>Tên tài khoản</label>
-                <input type="text" id="auth-user" placeholder="Nhập tên đăng nhập">
-            </div>
-            <div class="input-group">
-                <label>Mật khẩu</label>
-                <input type="password" id="auth-pass" placeholder="Nhập mật khẩu">
-            </div>
-            <button class="btn" onclick="login()">Đăng Nhập</button>
-            <button class="btn btn-secondary" onclick="register()">Đăng Ký Mới</button>
-        </div>
-
-        <!-- MENU CHÍNH -->
-        <div id="panel-menu" class="ui-panel">
-            <h2>MENU CHÍNH</h2>
-            <div id="info-text"></div>
-            <button class="btn" onclick="startGame()">▶ Play</button>
-            <button class="btn" onclick="switchPanel('panel-shop')">🛒 Shop Vật Phẩm</button>
-            <button class="btn" onclick="switchPanel('panel-topup')">💰 Nạp Points</button>
-            <button class="btn btn-secondary" onclick="logout()" style="margin-top: 15px;">Đăng Xuất</button>
-        </div>
-
-        <!-- SHOP -->
-        <div id="panel-shop" class="ui-panel">
-            <h2>CỬA HÀNG</h2>
-            <div id="shop-points" style="margin-bottom:15px; color:#00ffcc; font-weight:bold;"></div>
-            
-            <div class="shop-item">
-                <span>Giữ nguyên 1/2 LV khi chết (50đ)</span>
-                <button class="btn" id="btn-buy-keep" onclick="buyItem('keepLevel', 50)">Mua</button>
-            </div>
-            <div class="shop-item">
-                <span>Vừa đi vừa đánh ko khựng (25đ)</span>
-                <button class="btn" id="btn-buy-move" onclick="buyItem('moveAttack', 25)">Mua</button>
-            </div>
-            <div class="shop-item">
-                <span>Tăng tốc độ (Vĩnh viễn) (20đ)</span>
-                <button class="btn" id="btn-buy-speed" onclick="buyItem('permSpeed', 20)">Mua</button>
-            </div>
-
-            <button class="btn btn-secondary" onclick="switchPanel('panel-menu')" style="margin-top: 10px;">Quay lại</button>
-        </div>
-
-        <!-- NẠP POINTS -->
-        <div id="panel-topup" class="ui-panel">
-            <h2>NẠP POINTS</h2>
-            <p style="font-size:13px; color:#aaa; margin-bottom: 15px;">Mã có dạng GAME-XXXX-XXXX lấy từ SSBank</p>
-            <div class="input-group">
-                <label>Nhập mã Game:</label>
-                <input type="text" id="topup-code" placeholder="GAME-XXXX-XXXX" style="text-align: center; font-weight: bold;">
-            </div>
-            <button class="btn" onclick="redeemPoints()">Xác Nhận Nạp</button>
-            <button class="btn btn-secondary" onclick="switchPanel('panel-menu')">Quay lại</button>
-            <br>
-            <a href="https://potskghost-del.github.io/Ssbank/" target="_blank" class="text-link">Đến SSBank để nạp/đổi mã</a>
-        </div>
-    </div>
-
-<script>
-// ================= HỆ THỐNG TÀI KHOẢN VÀ MENU =================
-let localUsers = JSON.parse(localStorage.getItem('evowars_accounts')) || {};
-let currentUser = null;
-let isPlayingGame = false;
-
-function saveUser() {
-    if (currentUser) {
-        localUsers[currentUser.username] = currentUser;
-        localStorage.setItem('evowars_accounts', JSON.stringify(localUsers));
-    }
-}
-
-function switchPanel(panelId) {
-    document.querySelectorAll('.ui-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById(panelId).classList.add('active');
-    
-    if (panelId === 'panel-menu') {
-        document.getElementById('info-text').innerText = `Tài khoản: ${currentUser.username}\nSố dư: ${currentUser.points} Points`;
-    } else if (panelId === 'panel-shop') {
-        document.getElementById('shop-points').innerText = `Số dư của bạn: ${currentUser.points} Points`;
-        // Cập nhật trạng thái nút
-        document.getElementById('btn-buy-keep').innerText = currentUser.items.keepLevel ? "Đã Mua" : "Mua";
-        document.getElementById('btn-buy-move').innerText = currentUser.items.moveAttack ? "Đã Mua" : "Mua";
-        document.getElementById('btn-buy-speed').innerText = currentUser.items.permSpeed ? "Đã Mua" : "Mua";
-    }
-}
-
-function register() {
-    let u = document.getElementById('auth-user').value.trim();
-    let p = document.getElementById('auth-pass').value;
-    if (!u || !p) return alert("Vui lòng nhập đủ thông tin!");
-    if (localUsers[u]) return alert("Tên tài khoản đã tồn tại!");
-    
-    localUsers[u] = {
-        username: u,
-        password: p,
-        points: 0,
-        savedLevel: 1,
-        items: { keepLevel: false, moveAttack: false, permSpeed: false }
-    };
-    localStorage.setItem('evowars_accounts', JSON.stringify(localUsers));
-    alert("Đăng ký thành công! Vui lòng đăng nhập.");
-}
-
-function login() {
-    let u = document.getElementById('auth-user').value.trim();
-    let p = document.getElementById('auth-pass').value;
-    if (localUsers[u] && localUsers[u].password === p) {
-        currentUser = localUsers[u];
-        switchPanel('panel-menu');
-    } else {
-        alert("Sai tài khoản hoặc mật khẩu!");
-    }
-}
-
-function logout() {
-    currentUser = null;
-    document.getElementById('auth-user').value = '';
-    document.getElementById('auth-pass').value = '';
-    switchPanel('panel-auth');
-}
-
-function buyItem(itemKey, cost) {
-    if (currentUser.items[itemKey]) return alert("Bạn đã sở hữu tính năng này rồi!");
-    if (currentUser.points < cost) return alert("Bạn không đủ Points!");
-    
-    currentUser.points -= cost;
-    currentUser.items[itemKey] = true;
-    saveUser();
-    switchPanel('panel-shop'); // Refresh UI
-    alert("Mua vật phẩm thành công!");
-}
-
-async function redeemPoints() {
-    if (!window.dbGet) return alert("Hệ thống Firebase đang tải, vui lòng chờ 1 lát...");
-    
-    let code = document.getElementById('topup-code').value.trim();
-    if (!code.startsWith("GAME-")) return alert("Mã game không hợp lệ!");
-
-    try {
-        let snapshot = await window.dbGet(window.dbChild(window.dbRef, `ssbank_data/gifts/${code}`));
-        if (snapshot.exists()) {
-            let amount = parseInt(snapshot.val());
-            currentUser.points += amount;
-            saveUser();
-            
-            // Xóa mã khỏi Firebase sau khi nạp
-            let updates = {};
-            updates[`ssbank_data/gifts/${code}`] = null;
-            await window.dbUpdate(window.dbRef, updates);
-
-            document.getElementById('topup-code').value = '';
-            alert(`Thành công! Bạn nhận được ${amount} Points.`);
-        } else {
-            alert("Mã game không tồn tại hoặc đã được sử dụng!");
-        }
-    } catch (e) {
-        alert("Lỗi kết nối máy chủ ngân hàng SSBank!");
-    }
-}
-
-function startGame() {
-    document.getElementById('game-ui').style.display = 'none';
-    isPlayingGame = true;
-    // Khởi tạo game với cấp độ lưu trữ (nếu có giữ cấp)
-    init(currentUser.savedLevel || 1); 
-}
-
-function gameOverHandler() {
-    isPlayingGame = false;
-    document.getElementById('game-ui').style.display = 'flex';
-    switchPanel('panel-menu');
-    
-    // Xử lý giữ 1/2 cấp độ nếu có vật phẩm
-    if (currentUser.items.keepLevel && player.level > 1) {
-        currentUser.savedLevel = Math.max(1, Math.floor(player.level / 2));
-        alert(`Trận đấu kết thúc! Sát thủ đã tiễn bạn lên bảng số!\nNhờ vật phẩm, bạn được giữ lại cấp độ ${currentUser.savedLevel} cho lần chơi sau!`);
-    } else {
-        currentUser.savedLevel = 1;
-        alert(`Trận đấu kết thúc! Bạn đã chết và sẽ chơi lại từ cấp 1.`);
-    }
-    saveUser();
-}
-
-// ================= GAME LOGIC CORE =================
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const minimapCanvas = document.getElementById('minimapCanvas');
-const mCtx = minimapCanvas.getContext('2d');
-
-const MAP_SIZE = 3500; 
-const BOT_COUNT = 60; 
-const FOOD_COUNT = 750;
-
-const EVOLUTIONS = [
-    { level: 1, name: "Sơ Sinh", emoji: "😀", weapon: "🏏", size: 21, range: 45 },
-    { level: 2, name: "Tập Sự", emoji: "😃", weapon: "🏑", size: 28, range: 55 },
-    { level: 3, name: "Thợ Săn", emoji: "😄", weapon: "🏒", size: 32, range: 65 },
-    { level: 4, name: "Chiến Binh", emoji: "😁", weapon: "🪓", size: 36, range: 78 },
-    { level: 5, name: "Đồ Tể", emoji: "😆", weapon: "⚔️", size: 40, range: 92 },
-    { level: 6, name: "Sát Thủ", emoji: "😂", weapon: "🗡️", size: 44, range: 106 },
-    { level: 7, name: "Huyền Thoại", emoji: "🤣", weapon: "🔱", size: 48, range: 122 },
-    { level: 8, name: "Thần Thánh", emoji: "👑", weapon: "⚡", size: 54, range: 140 },
-    { level: 9, name: "", emoji: "👿", weapon: "🌙", size: 58, range: 145 },
-    { level: 10, name: "cục cứt", emoji: "💩", weapon: "🥖", size: 60, range: 148 },
-    { level: 11, name: "chết đi", emoji: "💀", weapon: "🦴", size: 65, range: 155 },
-    { level: 12, name: "Hắc Ám", emoji: "😈", weapon: "🔱", size: 7, range: 133 },
-    { level: 13, name: "Cyborg", emoji: "🤖", weapon: "🔧", size: 45, range: 141 },
-    { level: 14, name: "Người Ngoài Hành Tinh", emoji: "👽", weapon: "🔵", size: 43, range: 149 },
-    { level: 15, name: "Quỷ Lửa", emoji: "🔥", weapon: "💥", size: 46, range: 157 },
-    { level: 16, name: "Băng Thần", emoji: "❄️", weapon: "🪄", size: 79, range: 165 },
-    { level: 17, name: "Tử Thần", emoji: "💀", weapon: "🪓", size: 72, range: 173 },
-    { level: 18, name: "Ma Cà Rồng", emoji: "🧛", weapon: "🩸", size: 65, range: 181 },
-    { level: 19, name: "Pháp Sư Tối Cao", emoji: "🧙", weapon: "🔮", size: 68, range: 189 },
-    { level: 20, name: "Xác Sống Chúa", emoji: "🧟", weapon: "🦴", size: 71, range: 197 },
-    { level: 21, name: "Thần Khỉ (Wukong)", emoji: "🐒", weapon: "🥖", size: 76, range: 205 },
-    { level: 22, name: "Hổ Vương", emoji: "🐯", weapon: "🐾", size: 77, range: 213 },
-    { level: 23, name: "Long Thần", emoji: "🐉", weapon: "⚡", size: 97, range: 221 },
-    { level: 24, name: "Phượng Hoàng Lửa", emoji: "🦅", weapon: "✨", size: 93, range: 229 },
-    { level: 25, name: "Người Khổng Lồ", emoji: "🗿", weapon: "🪵", size: 96, range: 237 },
-    { level: 26, name: "Chúa Tể Hỗn Mang", emoji: "👁️", weapon: "🌀", size: 99, range: 245 },
-    { level: 27, name: "Thiên Thạch", emoji: "☄️", weapon: "❤️", size: 102, range: 253 },
-    { level: 28, name: "Hố Đen Vũ Trụ", emoji: "🕳️", weapon: "🕳", size: 105, range: 261 },
-    { level: 29, name: "Đấng Sáng Tạo", emoji: "🌌", weapon: "🌍", size: 108, range: 269 },
-    { level: 30, name: "Vô Hạn Tối Thượng", emoji: "🌟", weapon: "☀️", size: 0.1, range: 880 }
-];
-
-const BOT_NAMES = ["Ronaldo", "Messi", "Slayer", "Shadow", "Alpha", "Gladiator", "Zeus", "Phoenix", "Goku", "Naruto", "Luffy", "Saitama", "Pro_No1", "Batman", "Asura", "Knight", "Hunter", "Viper", "Challenger", "Kaelthas"];
-
-let player;
-let entities = [];
-let foods = [];
-
-let inputAxes = { x: 0, y: 0 }; 
-let isBoosting = false;
-
-let joystick = { active: false, startX: 0, startY: 0, angle: 0, force: 0 };
-const stick = document.getElementById('joystick-stick');
-const zone = document.getElementById('joystick-zone');
-
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    minimapCanvas.width = 130;
-    minimapCanvas.height = 130;
-}
-window.addEventListener('resize', resize);
-resize();
-
-function expNeeded(lvl) { return lvl * 100; }
-
-class Character {
-    constructor(x, y, isBot = false, name = "Bot") {
-        this.x = x;
-        this.y = y;
-        this.isBot = isBot;
-        this.name = name;
-        this.score = 0;
-        this.level = 1;
-        this.exp = 0;
-        this.angle = Math.random() * Math.PI * 2;
-        this.baseSpeed = 3.5;
-        this.isBoosting = false;
-        
-        this.isAttacking = false;
-        this.attackProgress = 0; 
-        
-        this.updateEvo();
-    }
-
-    updateEvo() {
-        let evo = EVOLUTIONS[Math.min(this.level - 1, EVOLUTIONS.length - 1)];
-        this.emoji = evo.emoji;
-        this.weapon = evo.weapon;
-        this.size = evo.size;
-        this.range = evo.range;
-    }
-
-    addExp(amount) {
-        this.exp += amount;
-        let needed = expNeeded(this.level);
-        while (this.exp >= needed && this.level < EVOLUTIONS.length) {
-            this.exp -= needed;
-            this.level++;
-            this.updateEvo();
-            needed = expNeeded(this.level);
-        }
-    }
-
-    attack() {
-        if (!this.isAttacking) {
-            this.isAttacking = true;
-            this.attackProgress = 0;
-        }
-    }
-
-    update() {
-        let speed = this.baseSpeed;
-        
-        // CỘNG THÊM TỐC ĐỘ VĨNH VIỄN TỪ SHOP (20 POINTS)
-        if (!this.isBot && currentUser && currentUser.items.permSpeed) {
-            speed *= 1.3; 
-        }
-
-        if (this.isBoosting && this.exp > 5) {
-            speed *= 1.7;
-            if (Math.random() < 0.15) this.exp -= 1;
-        }
-
-        // CƠ CHẾ KHỰNG LẠI KHI ĐÁNH NẾU KHÔNG CÓ VẬT PHẨM (25 POINTS)
-        if (!this.isBot && this.isAttacking && (!currentUser || !currentUser.items.moveAttack)) {
-            speed = 0; 
-        }
-
-        if (!this.isBot) {
-            if (joystick.active && joystick.force > 0) {
-                this.angle = joystick.angle;
-                this.x += Math.cos(this.angle) * speed * Math.min(joystick.force, 1);
-                this.y += Math.sin(this.angle) * speed * Math.min(joystick.force, 1);
-            } else if (inputAxes.x !== 0 || inputAxes.y !== 0) {
-                this.angle = Math.atan2(inputAxes.y, inputAxes.x);
-                this.x += Math.cos(this.angle) * speed;
-                this.y += Math.sin(this.angle) * speed;
+        // Tải toàn bộ dữ liệu từ Realtime Database của bạn
+        function loadOnlineData() {
+            if (!window.dbGet) {
+                // Đợi Firebase tải xong module nếu chưa kịp load
+                setTimeout(loadOnlineData, 200);
+                return;
             }
-        } else {
-            if (Math.random() < 0.025) {
-                let target = this.getNearestObjective();
-                if (target) {
-                    let targetAngle = Math.atan2(target.y - this.y, target.x - this.x);
-                    this.angle = targetAngle + (Math.random() * 0.4 - 0.2); 
-                    if (target.emoji && Math.hypot(target.x - this.x, target.y - this.y) < this.range * 1.5) {
-                        this.attack();
+            window.dbGet(window.dbChild(window.dbRef, 'ssbank_data')).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    users = data.users || [];
+                    giftCodes = data.gifts || { 'ABC123': 20 };
+                    lotteryCodes = data.lottery || {};
+                    
+                    // Đồng bộ phiên đăng nhập hiện tại nếu có
+                    if (currentUser) {
+                        currentUser = users.find(u => u.acc === currentUser.acc);
+                        updateHomeUI();
                     }
                 } else {
-                    this.angle += (Math.random() * 2 - 1);
+                    // Nếu db hoàn toàn trống rỗng, khởi tạo giá trị gốc
+                    saveData();
                 }
-            }
-            
-            if (this.x < 100) this.angle = 0;
-            if (this.x > MAP_SIZE - 100) this.angle = Math.PI;
-            if (this.y < 100) this.angle = Math.PI / 2;
-            if (this.y > MAP_SIZE - 100) this.angle = -Math.PI / 2;
-
-            this.x += Math.cos(this.angle) * speed * 0.85;
-            this.y += Math.sin(this.angle) * speed * 0.85;
-            this.isBoosting = (this.isAttacking || (Math.random() < 0.05 && this.level > 2));
-        }
-
-        this.x = Math.max(this.size, Math.min(MAP_SIZE - this.size, this.x));
-        this.y = Math.max(this.size, Math.min(MAP_SIZE - this.size, this.y));
-
-        if (this.isAttacking) {
-            this.attackProgress += 0.16;
-            if (this.attackProgress >= 1) {
-                this.isAttacking = false;
-                this.attackProgress = 0;
-            }
-        }
-    }
-
-    getNearestObjective() {
-        let nearest = null;
-        let minDist = 250;
-        let rivals = [player, ...entities];
-        rivals.forEach(r => {
-            if (r !== this) {
-                let d = Math.hypot(r.x - this.x, r.y - this.y);
-                if (d < minDist) { minDist = d; nearest = r; }
-            }
-        });
-        if (!nearest) {
-            foods.forEach(f => {
-                let d = Math.hypot(f.x - this.x, f.y - this.y);
-                if (d < minDist) { minDist = d; nearest = f; }
+            }).catch((error) => {
+                console.error("Lỗi đồng bộ Firebase:", error);
             });
         }
-        return nearest;
-    }
 
-    draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        
-        if (this.isAttacking) {
-            ctx.beginPath();
-            ctx.arc(0, 0, this.range, this.angle - Math.PI/2, this.angle + Math.PI/2);
-            ctx.strokeStyle = 'rgba(69, 243, 255, 0.15)';
-            ctx.lineWidth = 4;
-            ctx.stroke();
-        }
-
-        ctx.save();
-        let currentWeaponAngle = this.angle + Math.PI / 4; 
-        if (this.isAttacking) {
-            currentWeaponAngle = this.angle - Math.PI / 2 + (Math.PI * this.attackProgress);
-        }
-        ctx.rotate(currentWeaponAngle);
-        ctx.font = `${this.size * 1.1}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.weapon, this.range * 0.65, -this.range * 0.15);
-        ctx.restore();
-
-        ctx.font = `${this.size}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.emoji, 0, 0);
-
-        ctx.restore();
-        ctx.save();
-        ctx.fillStyle = this.isBot ? '#ff4d6d' : '#00ffcc';
-        ctx.font = 'bold 13px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${this.name} [Lv.${this.level}]`, this.x, this.y - this.size - 6);
-        ctx.restore();
-    }
-}
-
-function init(startLevel = 1) {
-    let pName = currentUser ? currentUser.username : "Bạn";
-    player = new Character(MAP_SIZE / 2, MAP_SIZE / 2, false, pName);
-    
-    // Áp dụng tính năng phục hồi level
-    if (startLevel > 1) {
-        player.level = startLevel;
-        player.exp = expNeeded(startLevel - 1); // Set exp tiệm cận cấp độ
-        player.updateEvo();
-    }
-    
-    foods = [];
-    for (let i = 0; i < FOOD_COUNT; i++) spawnFood();
-
-    entities = [];
-    for (let i = 0; i < BOT_COUNT; i++) spawnBot();
-}
-
-function spawnFood() {
-    foods.push({
-        x: Math.random() * (MAP_SIZE - 40) + 20,
-        y: Math.random() * (MAP_SIZE - 40) + 20,
-        color: `hsl(${Math.random() * 360}, 95%, 65%)`,
-        size: Math.random() * 3 + 4
-    });
-}
-
-function spawnBot() {
-    let name = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)] + "_" + Math.floor(Math.random()*90 + 10);
-    let bot = new Character(Math.random() * (MAP_SIZE - 200) + 100, Math.random() * (MAP_SIZE - 200) + 100, true, name);
-    bot.addExp(Math.random() * 180); 
-    entities.push(bot);
-}
-
-function checkCollisions() {
-    if(!isPlayingGame) return;
-
-    let activeFighters = [player, ...entities];
-
-    activeFighters.forEach(p => {
-        for (let i = foods.length - 1; i >= 0; i--) {
-            let f = foods[i];
-            if (Math.hypot(p.x - f.x, p.y - f.y) < p.size + f.size) {
-                foods.splice(i, 1);
-                p.addExp(20);
-                p.score += 20;
-                spawnFood();
+        // Đẩy toàn bộ dữ liệu hiện tại lên Realtime Database
+        function saveData() {
+            if (window.dbSet && window.dbRefPath) {
+                window.dbSet(window.dbRefPath(window.db, 'ssbank_data'), {
+                    users: users,
+                    gifts: giftCodes,
+                    lottery: lotteryCodes
+                }).then(() => {
+                    console.log("Đã đồng bộ lên Firebase!");
+                }).catch((e) => {
+                    console.error("Lỗi ghi Firebase:", e);
+                });
             }
         }
-    });
 
-    for (let i = 0; i < activeFighters.length; i++) {
-        let attacker = activeFighters[i];
-        if (!attacker.isAttacking) continue;
+        // --- UTILS ---
+        function showNotification(msg) {
+            const noti = document.getElementById('notification');
+            noti.innerText = msg;
+            noti.style.display = 'block';
+            setTimeout(() => { noti.style.display = 'none'; }, 3000);
+        }
 
-        for (let j = 0; j < activeFighters.length; j++) {
-            if (i === j) continue;
-            let victim = activeFighters[j];
+        function toggleAuth() {
+            const login = document.getElementById('login-form');
+            const reg = document.getElementById('register-form');
+            if (login.style.display === 'none') {
+                login.style.display = 'block';
+                reg.style.display = 'none';
+            } else {
+                login.style.display = 'none';
+                reg.style.display = 'block';
+            }
+        }
 
-            let dist = Math.hypot(attacker.x - victim.x, attacker.y - victim.y);
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            const navItems = document.querySelectorAll('.nav-item');
+            if(tabId === 'home') navItems[0].classList.add('active');
+            if(tabId === 'transfer') navItems[1].classList.add('active');
+            if(tabId === 'history') navItems[2].classList.add('active');
+            if(tabId === 'code') navItems[3].classList.add('active');
+            if(tabId === 'lottery') navItems[4].classList.add('active');
+            if(tabId === 'gamecode') navItems[5].classList.add('active');
 
-            if (dist < attacker.range + victim.size) {
-                let angleToVictim = Math.atan2(victim.y - attacker.y, victim.x - attacker.x);
-                let angleDiff = angleToVictim - attacker.angle;
-                angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+            if(tabId === 'home') updateHomeUI();
+            if(tabId === 'history') updateHistoryUI();
+        }
 
-                if (Math.abs(angleDiff) <= Math.PI / 2) {
-                    attacker.addExp(expNeeded(victim.level) * 0.5 + victim.exp);
-                    attacker.score += victim.level * 250;
+        function addHistory(acc, type, amount, desc) {
+            let user = users.find(u => u.acc === acc);
+            if(user) {
+                if(!user.history) user.history = [];
+                user.history.unshift({ type, amount, desc, time: new Date().toLocaleString() });
+                saveData();
+            }
+        }
 
-                    if (victim === player) {
-                        gameOverHandler();
-                        return;
-                    } else {
-                        let idx = entities.indexOf(victim);
-                        if (idx > -1) {
-                            entities.splice(idx, 1);
-                            spawnBot();
-                        }
-                    }
+        // --- AUTH ---
+        function register() {
+            let name = document.getElementById('reg-name').value.trim();
+            let pass = document.getElementById('reg-pass').value;
+            let pin = document.getElementById('reg-pin').value;
+
+            if(!name || !pass || pin.length !== 6 || isNaN(pin)) {
+                return showNotification('Vui lòng điền đủ thông tin và mã bảo mật phải đúng 6 chữ số!');
+            }
+
+            // Đồng bộ dữ liệu mới nhất từ Cloud trước khi tạo tài khoản để tránh trùng số TK
+            window.dbGet(window.dbChild(window.dbRef, 'ssbank_data/users')).then((snapshot) => {
+                let currentUsersOnCloud = snapshot.val() || [];
+                let newAcc = String(currentUsersOnCloud.length + 1).padStart(6, '0');
+                
+                let newUserObj = {
+                    acc: newAcc,
+                    name: name,
+                    pass: pass,
+                    pin: pin,
+                    balance: 0,
+                    history: []
+                };
+
+                currentUsersOnCloud.push(newUserObj);
+                users = currentUsersOnCloud;
+                
+                saveData();
+                prompt(`Đăng ký thành công! Hãy copy (sao chép) Số tài khoản dưới đây để không bị quên:`, newAcc);
+
+                toggleAuth();
+            });
+        }
+
+        function login() {
+            let acc = document.getElementById('login-acc').value;
+            let pass = document.getElementById('login-pass').value;
+            let pin = document.getElementById('login-pin').value;
+
+            // Đọc trực tiếp từ Firebase để đăng nhập đúng tài khoản vừa cập nhật online
+            window.dbGet(window.dbChild(window.dbRef, 'ssbank_data')).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    users = data.users || [];
+                    giftCodes = data.gifts || { 'ABC123': 20 };
+                    lotteryCodes = data.lottery || {};
                 }
+
+                let user = users.find(u => u.acc === acc && u.pass === pass && u.pin === pin);
+                if(user) {
+                    currentUser = user;
+                    document.getElementById('auth-section').style.display = 'none';
+                    document.getElementById('app-section').style.display = 'flex';
+                    switchTab('home');
+                    showNotification('Đăng nhập thành công!');
+                } else {
+                    showNotification('Sai thông tin đăng nhập!');
+                }
+            });
+        }
+
+        // --- LOGOUT ---
+        function logout() {
+            currentUser = null;
+            document.getElementById('app-section').style.display = 'none';
+            document.getElementById('auth-section').style.display = 'block';
+            document.getElementById('login-acc').value = '';
+            document.getElementById('login-pass').value = '';
+            document.getElementById('login-pin').value = '';
+        }
+
+        // --- CORE APP ---
+        function updateHomeUI() {
+            if(!currentUser) return;
+            document.getElementById('ui-balance').innerText = currentUser.balance;
+            document.getElementById('ui-vnd').innerText = (currentUser.balance * 10).toLocaleString('vi-VN');
+            document.getElementById('ui-name').innerText = currentUser.name;
+            document.getElementById('ui-acc').innerText = currentUser.acc;
+        }
+
+        function updateHistoryUI() {
+            if(!currentUser) return;
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+            let currentHist = currentUser.history || [];
+            currentHist.forEach(h => {
+                let colorClass = h.type === 'plus' ? 'plus' : 'minus';
+                let sign = h.type === 'plus' ? '+' : '-';
+                list.innerHTML += `
+                    <div class="history-item ${colorClass}">
+                        <div>
+                            <strong>${h.desc}</strong>
+                            <div style="font-size:0.8em; color:#777;">${h.time}</div>
+                        </div>
+                        <div style="font-weight:bold;">${sign}${h.amount} pts</div>
+                    </div>
+                `;
+            });
+            if(currentHist.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#777;">Chưa có giao dịch nào.</p>';
             }
         }
-    }
-}
-function updateUI() {
-    if(!isPlayingGame) return;
-    let list = [player, ...entities].sort((a, b) => b.score - a.score);
-    let html = "";
-    for (let i = 0; i < Math.min(5, list.length); i++) {
-        let item = list[i];
-        let clr = item === player ? '#45f3ff' : '#ffffff';
-        html += `<li style="color:${clr}">${item.name}: ${Math.floor(item.score)}</li>`;
-    }
-    document.getElementById('leaderList').innerHTML = html;
 
-    let currentEvo = EVOLUTIONS[Math.min(player.level - 1, EVOLUTIONS.length - 1)];
-    document.getElementById('playerStats').innerText = `Cấp độ: ${player.level} | Danh hiệu: ${currentEvo.name}`;
-    let prog = (player.exp / expNeeded(player.level)) * 100;
-    document.getElementById('levelProgress').style.width = `${Math.min(prog, 100)}%`;
-}
+        function lookupReceiver() {
+            let acc = document.getElementById('trans-acc').value;
+            let target = users.find(u => u.acc === acc);
+            let label = document.getElementById('receiver-name');
+            if(target) {
+                label.innerText = `Tên người nhận: ${target.name}`;
+            } else {
+                label.innerText = '';
+            }
+        }
 
-function drawMinimap() {
-    if(!isPlayingGame) return;
-    mCtx.clearRect(0, 0, 130, 130);
-    let ratio = 130 / MAP_SIZE;
+        function transferMoney() {
+            let toAcc = document.getElementById('trans-acc').value;
+            let amount = parseInt(document.getElementById('trans-amount').value);
+            let pass = document.getElementById('trans-pass').value;
+            let pin = document.getElementById('trans-pin').value;
 
-    mCtx.fillStyle = '#00ffcc';
-    mCtx.beginPath(); mCtx.arc(player.x * ratio, player.y * ratio, 3.5, 0, Math.PI*2); mCtx.fill();
+            if(!toAcc || isNaN(amount) || amount <= 0 || !pass || !pin) {
+                return showNotification('Vui lòng điền thông tin hợp lệ!');
+            }
 
-    mCtx.fillStyle = '#ff4d6d';
-    entities.forEach(b => {
-        mCtx.beginPath(); mCtx.arc(b.x * ratio, b.y * ratio, 2, 0, Math.PI*2); mCtx.fill();
-    });
-}
+            if(pass !== currentUser.pass || pin !== currentUser.pin) {
+                return showNotification('Sai mật khẩu hoặc mã bảo mật!');
+            }
+            if(toAcc === currentUser.acc) {
+                return showNotification('Không thể tự chuyển tiền cho mình!');
+            }
 
-function loop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Đồng bộ dữ liệu trực tuyến trước khi chuyển (tránh lỗi số dư ảo)
+            window.dbGet(window.dbChild(window.dbRef, 'ssbank_data')).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    users = data.users || [];
+                    giftCodes = data.gifts || { 'ABC123': 20 };
+                    lotteryCodes = data.lottery || {};
+                }
 
-    // Camera chạy ẩn đằng sau ngay cả khi ở Menu
-    let camX = player ? player.x : MAP_SIZE/2;
-    let camY = player ? player.y : MAP_SIZE/2;
+                // Cập nhật lại các liên kết của user hiện tại và đích
+                currentUser = users.find(u => u.acc === currentUser.acc);
+                let receiver = users.find(u => u.acc === toAcc);
 
-    ctx.save();
-    ctx.translate(canvas.width / 2 - camX, canvas.height / 2 - camY);
+                if(!receiver) {
+                    return showNotification('Không tìm thấy người nhận!');
+                }
+                if(currentUser.balance < amount) {
+                    return showNotification('Số dư không đủ!');
+                }
 
-    ctx.strokeStyle = '#151922';
-    ctx.lineWidth = 1.5;
-    for (let x = 0; x < MAP_SIZE; x += 150) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, MAP_SIZE); ctx.stroke();
-    }
-    for (let y = 0; y < MAP_SIZE; y += 150) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(MAP_SIZE, y); ctx.stroke();
-    }
-        ctx.strokeStyle = '#ff2a5f';
-    ctx.lineWidth = 8;
-    ctx.strokeRect(0, 0, MAP_SIZE, MAP_SIZE);
+                // Thực hiện giao dịch
+                currentUser.balance -= amount;
+                receiver.balance += amount;
+                
+                addHistory(currentUser.acc, 'minus', amount, `Chuyển tiền đến ${receiver.name} (${receiver.acc})`);
+                addHistory(receiver.acc, 'plus', amount, `Nhận tiền từ ${currentUser.name} (${currentUser.acc})`);
+                
+                saveData();
+                showNotification('Chuyển tiền thành công!');
+                
+                // Reset form
+                document.getElementById('trans-acc').value = '';
+                document.getElementById('trans-amount').value = '';
+                document.getElementById('trans-pass').value = '';
+                document.getElementById('trans-pin').value = '';
+                document.getElementById('receiver-name').innerText = '';
+                
+                switchTab('home');
+            });
+        }
+                // --- TÍNH NĂNG MỚI: TẠO MÃ GAME TRỰC TUYẾN ---
+        function generateGameCode(amount) {
+            if(!currentUser) return showNotification('Vui lòng đăng nhập trước!');
 
-    foods.forEach(f => {
-        ctx.beginPath(); ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
-        ctx.fillStyle = f.color; ctx.fill();
-    });
+            // Đồng bộ dữ liệu trực tuyến trước khi trừ tiền tránh hack/ảo
+            window.dbGet(window.dbChild(window.dbRef, 'ssbank_data')).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    users = data.users || [];
+                    giftCodes = data.gifts || {};
+                    lotteryCodes = data.lottery || {};
+                }
+                
+                currentUser = users.find(u => u.acc === currentUser.acc);
 
-    entities.forEach(bot => {
-        if(isPlayingGame) bot.update(); // Chỉ bot di chuyển nếu đang chơi
-        bot.draw();
-    });
+                // Kiểm tra số dư tài khoản ngân hàng
+                if(currentUser.balance < amount) {
+                    return showNotification('Tài khoản ngân hàng của bạn không đủ points!');
+                }
 
-    if(player && isPlayingGame) {
-        player.isBoosting = isBoosting;
-        player.update();
-        player.draw();
-    }
+                // Trừ tiền của tài khoản
+                currentUser.balance -= amount;
 
-    ctx.restore();
+                // Tạo mã game ngẫu nhiên dạng: GAME-XXXX-XXXX
+                let part1 = Math.random().toString(36).substring(2, 6).toUpperCase();
+                let part2 = Math.random().toString(36).substring(2, 6).toUpperCase();
+                let newGameCode = `GAME-${part1}-${part2}`;
 
-    checkCollisions();
-    drawMinimap();
-    updateUI();
+                // Thêm mã game mới vào nhánh quà tặng trực tuyến (gifts)
+                giftCodes[newGameCode] = amount;
 
-    requestAnimationFrame(loop);
-}
+                // Lưu lịch sử giao dịch của ngân hàng
+                addHistory(currentUser.acc, 'minus', amount, `Đổi mã nạp game (${newGameCode})`);
 
-// Input Controls
-const keyState = {};
+                // Đồng bộ hóa lên Firebase
+                saveData();
 
-function updateInputAxes() {
-    inputAxes.x = 0;
-    inputAxes.y = 0;
-    if (keyState['w'] || keyState['ư'] || keyState['arrowup']) inputAxes.y -= 1;
-    if (keyState['s'] || keyState['arrowdown']) inputAxes.y += 1;
-    if (keyState['a'] || keyState['â'] || keyState['arrowleft']) inputAxes.x -= 1;
-    if (keyState['d'] || keyState['đ'] || keyState['arrowright']) inputAxes.x += 1;
-}
+                // Hiển thị mã ra giao diện
+                document.getElementById('generated-game-code').value = newGameCode;
+                showNotification(`Đã tạo thành công mã game trị giá ${amount} points!`);
+                
+                // Reset UI Trang chủ
+                updateHomeUI();
+            });
+        }
 
-window.addEventListener('keydown', e => {
-    if(!isPlayingGame) return;
-    let k = e.key.toLowerCase();
-    keyState[k] = true;
-    if (e.key === ' ') isBoosting = true;
-    updateInputAxes();
-});
+        // --- GIFT & LOTTERY (ĐÃ CẬP NHẬT TƯƠNG THÍCH MÃ GAME) ---
+        function redeemCode() {
+            let code = document.getElementById('gift-code-input').value.trim();
+            if(!code) return showNotification('Vui lòng nhập mã!');
 
-window.addEventListener('keyup', e => {
-    if(!isPlayingGame) return;
-    let k = e.key.toLowerCase();
-    keyState[k] = false;
-    if (e.key === ' ') isBoosting = false;
-    updateInputAxes();
-});
+            // Đồng bộ dữ liệu code trực tuyến
+            window.dbGet(window.dbChild(window.dbRef, 'ssbank_data')).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    users = data.users || [];
+                    giftCodes = data.gifts || {};
+                    lotteryCodes = data.lottery || {};
+                }
+                currentUser = users.find(u => u.acc === currentUser.acc);
 
-window.addEventListener('mousedown', e => {
-    if(!isPlayingGame) return;
-    if (e.clientX > 200 || e.clientY < window.innerHeight - 200) {
-        player.attack();
-    }
-});
+                // Check mã quà tặng (bao gồm cả mã game tự tạo)
+                if(giftCodes[code] !== undefined) {
+                    let pts = giftCodes[code];
+                    currentUser.balance += pts;
+                    addHistory(currentUser.acc, 'plus', pts, `Nhập mã quà tặng: ${code}`);
+                    delete giftCodes[code]; // Hủy mã online sau khi xài
+                    saveData();
+                    showNotification(`Thành công! Bạn nhận được ${pts} points`);
+                    document.getElementById('gift-code-input').value = '';
+                    return;
+                }
 
-// Joystick
-function handleJoystickMove(e) {
-    if (!joystick.active || !isPlayingGame) return;
-    let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                // Check mã vé số
+                if(lotteryCodes[code] !== undefined) {
+                    let prize = lotteryCodes[code];
+                    if(prize > 0) {
+                        currentUser.balance += prize;
+                        addHistory(currentUser.acc, 'plus', prize, `Trúng thưởng vé số mã ${code}`);
+                        showNotification(`CHÚC MỪNG! Bạn trúng ${prize} points!`);
+                    } else {
+                        showNotification(`Chúc may mắn lần sau! (Mã: ${code})`);
+                    }
+                    delete lotteryCodes[code]; // Hủy vé online sau khi cào
+                    saveData();
+                    document.getElementById('gift-code-input').value = '';
+                    return;
+                }
 
-    let dx = clientX - joystick.startX;
-    let dy = clientY - joystick.startY;
-    let dist = Math.hypot(dx, dy);
-    let maxRadius = 45; 
+                showNotification('Mã không hợp lệ hoặc đã được sử dụng!');
+            });
+        }
 
-    if (dist > 0) {
-        joystick.angle = Math.atan2(dy, dx);
-        joystick.force = dist / maxRadius;
-    }
+        function buyLottery() {
+            // Đồng bộ dữ liệu ví trực tuyến trước khi mua
+            window.dbGet(window.dbChild(window.dbRef, 'ssbank_data')).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    users = data.users || [];
+                    giftCodes = data.gifts || {};
+                    lotteryCodes = data.lottery || {};
+                }
+                currentUser = users.find(u => u.acc === currentUser.acc);
 
-    let stickX = Math.cos(joystick.angle) * Math.min(dist, maxRadius) + 37.5;
-    let stickY = Math.sin(joystick.angle) * Math.min(dist, maxRadius) + 37.5;
-    
-    stick.style.left = `${stickX}px`;
-    stick.style.top = `${stickY}px`;
-}
+                if(currentUser.balance < 10) {
+                    return showNotification('Bạn không đủ 10 points để mua vé số!');
+                }
 
-function startJoystick(clientX, clientY) {
-    if(!isPlayingGame) return;
-    joystick.active = true;
-    let bounds = zone.getBoundingClientRect();
-    joystick.startX = bounds.left + 65;
-    joystick.startY = bounds.top + 65;
-}
+                currentUser.balance -= 10;
+                addHistory(currentUser.acc, 'minus', 10, 'Mua 1 vé số');
+                
+                let code = 'VS' + Math.random().toString(36).substring(2, 6).toUpperCase();
+                let rand = Math.floor(Math.random() * 100) + 1;
+                let prize = 0;
+                
+                if (rand <= 60) prize = 0;
+                else if (rand <= 75) prize = 10;
+                else if (rand <= 83) prize = 20;
+                else if (rand <= 90) prize = 25;
+                else if (rand <= 95) prize = 50;
+                else if (rand <= 98) prize = 100;
+                else prize = 1000;
 
-function stopJoystick() {
-    joystick.active = false;
-    joystick.force = 0;
-    stick.style.left = '37.5px';
-    stick.style.top = '37.5px';
-}
+                lotteryCodes[code] = prize;
+                saveData();
 
-zone.addEventListener('touchstart', e => { startJoystick(e.touches[0].clientX, e.touches[0].clientY); handleJoystickMove(e); });
-window.addEventListener('touchmove', handleJoystickMove);
-window.addEventListener('touchend', stopJoystick);
-zone.addEventListener('mousedown', e => { startJoystick(e.clientX, e.clientY); });
-window.addEventListener('mousemove', handleJoystickMove);
-window.addEventListener('mouseup', stopJoystick);
+                document.getElementById('lottery-result').innerHTML = `Mua thành công!<br>Mã của bạn là: <span style="font-size:1.5em; color:black; background:yellow; padding: 2px 10px;">${code}</span><br><br><span style="font-size:0.8em; font-weight:normal; color:#555;">(Hãy copy mã này qua phần "Đổi mã" để cào thưởng)</span>`;
+                showNotification('Mua vé thành công!');
+            });
+        }
+          // --- ADMIN PANEL ---
+        let logoClicks = 0;
+        let logoTimer;
+        
+        function handleLogoClick() {
+            logoClicks++;
+            clearTimeout(logoTimer);
+            logoTimer = setTimeout(() => { logoClicks = 0; }, 1000);
+            
+            if(logoClicks === 3) {
+                logoClicks = 0;
+                switchTab('admin');
+            }
+        }
 
-const btnBoost = document.getElementById('btn-boost');
-const btnAttack = document.getElementById('btn-attack');
+        function verifyAdmin() {
+            if(document.getElementById('admin-pass').value === 'mingfruit36') {
+                document.getElementById('admin-login').style.display = 'none';
+                document.getElementById('admin-controls').style.display = 'block';
+                showNotification('Xác thực admin thành công!');
+            } else {
+                showNotification('Sai mật khẩu Admin!');
+            }
+        }
 
-btnBoost.addEventListener('touchstart', e => { e.preventDefault(); if(isPlayingGame) isBoosting = true; });
-btnBoost.addEventListener('touchend', () => { isBoosting = false; });
-btnAttack.addEventListener('touchstart', e => { e.preventDefault(); if(isPlayingGame) player.attack(); });
+        function lookupAdminTarget() {
+            let acc = document.getElementById('admin-acc').value;
+            let target = users.find(u => u.acc === acc);
+            if(target) {
+                document.getElementById('admin-target-name').innerText = `Tên: ${target.name}`;
+            } else {
+                document.getElementById('admin-target-name').innerText = 'Không tìm thấy user';
+            }
+        }
 
-// Khởi chạy ngầm nền móng Game
-init();
-loop();
-</script>
+        // Hàm Admin can thiệp dữ liệu trên Firebase
+        function adminExecute() {
+            let acc = document.getElementById('admin-acc').value;
+            let amount = parseInt(document.getElementById('admin-amount').value);
+            
+            window.dbGet(window.dbChild(window.dbRef, 'ssbank_data')).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    users = data.users || [];
+                    giftCodes = data.gifts || {};
+                    lotteryCodes = data.lottery || {};
+                }
+
+                let target = users.find(u => u.acc === acc);
+                if(!target || isNaN(amount)) {
+                    return showNotification('Lỗi dữ liệu đầu vào!');
+                }
+
+                target.balance += amount;
+                let type = amount >= 0 ? 'plus' : 'minus';
+                addHistory(target.acc, type, Math.abs(amount), 'Admin điều chỉnh số dư');
+                saveData();
+                
+                if(currentUser && currentUser.acc === target.acc) {
+                    currentUser = target;
+                    updateHomeUI();
+                }
+                
+                showNotification(`Đã ${amount >= 0 ? 'cộng' : 'trừ'} ${Math.abs(amount)} pts cho ${target.name}`);
+                document.getElementById('admin-acc').value = '';
+                document.getElementById('admin-amount').value = '';
+                document.getElementById('admin-target-name').innerText = '';
+            });
+        }
+    </script>
 </body>
 </html>
