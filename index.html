@@ -204,7 +204,6 @@
 
         .card h3 { font-size: 1em; color: #555; }
         .card .balance { font-size: 2.5em; font-weight: bold; margin: 10px 0; color: var(--primary); }
-        .card .vnd { font-size: 1.2em; font-weight: bold; color: #667eea; }
 
         .history-item {
             padding: 10px;
@@ -271,6 +270,39 @@
             border-color: var(--primary);
             background: #fff0f2;
             color: var(--primary);
+        }
+
+        /* Style cho nhiệm vụ hàng ngày */
+        .quest-box {
+            background: #fff;
+            border: 1px dashed #ff416c;
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        .quest-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        .quest-item:last-child {
+            border-bottom: none;
+        }
+        .quest-btn {
+            padding: 5px 10px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.85em;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .quest-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -340,11 +372,28 @@
                     <div class="card">
                         <h3>Số dư khả dụng:</h3>
                         <div class="balance"><span id="ui-balance">0</span> Points</div>
-                        <div class="vnd">~ <span id="ui-vnd">0</span> VNĐ</div>
                     </div>
                     <div class="card" style="background: #f8f9fa;">
                         <p><strong>Họ và tên:</strong> <span id="ui-name"></span></p>
                         <p><strong>Số tài khoản:</strong> <span id="ui-acc"></span></p>
+                    </div>
+                    <!-- Nhiệm vụ hàng ngày -->
+                    <div class="quest-box">
+                        <h4 style="color: var(--primary); margin-bottom: 5px;">📅 Nhiệm vụ hàng ngày</h4>
+                        <div class="quest-item">
+                            <div>
+                                <span style="font-size: 0.9em; font-weight: bold;">Đăng nhập hàng ngày</span><br>
+                                <span style="font-size: 0.8em; color: green;">+10 Points</span>
+                            </div>
+                            <button id="btn-quest-login" class="quest-btn" onclick="claimDailyLogin()">Nhận</button>
+                        </div>
+                        <div class="quest-item">
+                            <div>
+                                <span style="font-size: 0.9em; font-weight: bold;">Mua 5 vé số (<span id="quest-lottery-count">0</span>/5)</span><br>
+                                <span style="font-size: 0.8em; color: green;">+75 Points</span>
+                            </div>
+                            <button id="btn-quest-lottery" class="quest-btn" onclick="claimDailyLotteryQuest()">Nhận</button>
+                        </div>
                     </div>
                 </div>
 
@@ -395,10 +444,10 @@
                     <h2>Vé số may mắn</h2>
                     <p style="margin: 10px 0; color: #555;">Giá: <strong>10 Points</strong> / 1 vé</p>
                     <ul style="margin-left: 20px; font-size: 0.9em; margin-bottom: 15px; line-height: 1.6;">
-                        <li>Trúng 1000 Points: 2%</li>
+                        <li>Trúng 1000 Points: 0.5%</li>
+                        <li>Trúng 500 Points: 1.5%</li>
                         <li>Trúng 100 Points: 3%</li>
-                        <li>Trúng 50 Points: 5%</li>
-                        <li>Trúng 25 Points: 7%</li>
+                        <li>Trúng 50 Points: 12%</li>
                         <li>Trúng 20 Points: 8%</li>
                         <li>Trúng 10 Points: 15%</li>
                         <li>Chúc may mắn lần sau: 60%</li>
@@ -477,7 +526,7 @@
                         updateHomeUI();
                     }
                 } else {
-                    // Nếu db hoàn toàn trống rỗng, khởi tạo giá trị gốc
+                    // Nếu db hoàn toàn trốngrỗng, khởi tạo giá trị gốc
                     saveData();
                 }
             }).catch((error) => {
@@ -568,7 +617,8 @@
                     pass: pass,
                     pin: pin,
                     balance: 0,
-                    history: []
+                    history: [],
+                    daily_data: { last_login_date: "", lottery_bought_date: "", lottery_count: 0, lottery_claimed_date: "" }
                 };
 
                 currentUsersOnCloud.push(newUserObj);
@@ -598,6 +648,10 @@
                 let user = users.find(u => u.acc === acc && u.pass === pass && u.pin === pin);
                 if(user) {
                     currentUser = user;
+                    // Đảm bảo cấu trúc dữ liệu nhiệm vụ hàng ngày tồn tại
+                    if(!currentUser.daily_data) {
+                        currentUser.daily_data = { last_login_date: "", lottery_bought_date: "", lottery_count: 0, lottery_claimed_date: "" };
+                    }
                     document.getElementById('auth-section').style.display = 'none';
                     document.getElementById('app-section').style.display = 'flex';
                     switchTab('home');
@@ -622,9 +676,96 @@
         function updateHomeUI() {
             if(!currentUser) return;
             document.getElementById('ui-balance').innerText = currentUser.balance;
-            document.getElementById('ui-vnd').innerText = (currentUser.balance * 10).toLocaleString('vi-VN');
             document.getElementById('ui-name').innerText = currentUser.name;
             document.getElementById('ui-acc').innerText = currentUser.acc;
+
+            // Logic quản lý & hiển thị trạng thái nhiệm vụ hàng ngày
+            const today = new Date().toLocaleDateString();
+            if(!currentUser.daily_data) {
+                currentUser.daily_data = { last_login_date: "", lottery_bought_date: "", lottery_count: 0, lottery_claimed_date: "" };
+            }
+
+            // Reset bộ đếm số vé số mua trong ngày nếu sang ngày mới
+            if (currentUser.daily_data.lottery_bought_date !== today) {
+                currentUser.daily_data.lottery_bought_date = today;
+                currentUser.daily_data.lottery_count = 0;
+            }
+
+            // UI Nhiệm vụ Đăng nhập
+            const btnLogin = document.getElementById('btn-quest-login');
+            if (currentUser.daily_data.last_login_date === today) {
+                btnLogin.innerText = "Đã nhận";
+                btnLogin.disabled = true;
+            } else {
+                btnLogin.innerText = "Nhận";
+                btnLogin.disabled = false;
+            }
+
+            // UI Nhiệm vụ Vé số
+            document.getElementById('quest-lottery-count').innerText = currentUser.daily_data.lottery_count;
+            const btnLotteryQuest = document.getElementById('btn-quest-lottery');
+            if (currentUser.daily_data.lottery_claimed_date === today) {
+                btnLotteryQuest.innerText = "Đã nhận";
+                btnLotteryQuest.disabled = true;
+            } else {
+                if (currentUser.daily_data.lottery_count >= 5) {
+                    btnLotteryQuest.innerText = "Nhận";
+                    btnLotteryQuest.disabled = false;
+                } else {
+                    btnLotteryQuest.innerText = "Chưa đủ";
+                    btnLotteryQuest.disabled = true;
+                }
+            }
+        }
+
+        // Hàm xử lý Nhận thưởng Đăng nhập hằng ngày
+        function claimDailyLogin() {
+            if(!currentUser) return;
+            const today = new Date().toLocaleDateString();
+            
+            window.dbGet(window.dbChild(window.dbRef, 'ssbank_data')).then((snapshot) => {
+                if (snapshot.exists()) users = snapshot.val().users || [];
+                currentUser = users.find(u => u.acc === currentUser.acc);
+
+                if (currentUser.daily_data && currentUser.daily_data.last_login_date === today) {
+                    return showNotification('Bạn đã nhận phần thưởng này hôm nay rồi!');
+                }
+
+                if(!currentUser.daily_data) currentUser.daily_data = {};
+                currentUser.daily_data.last_login_date = today;
+                currentUser.balance += 10;
+                
+                addHistory(currentUser.acc, 'plus', 10, 'Nhận thưởng đăng nhập hàng ngày');
+                saveData();
+                showNotification('Nhận thành công 10 Points thưởng đăng nhập!');
+                updateHomeUI();
+            });
+        }
+
+        // Hàm xử lý Nhận thưởng Mua 5 vé số hằng ngày
+        function claimDailyLotteryQuest() {
+            if(!currentUser) return;
+            const today = new Date().toLocaleDateString();
+
+            window.dbGet(window.dbChild(window.dbRef, 'ssbank_data')).then((snapshot) => {
+                if (snapshot.exists()) users = snapshot.val().users || [];
+                currentUser = users.find(u => u.acc === currentUser.acc);
+
+                if (currentUser.daily_data && currentUser.daily_data.lottery_claimed_date === today) {
+                    return showNotification('Bạn đã nhận phần thưởng này hôm nay rồi!');
+                }
+                if (!currentUser.daily_data || currentUser.daily_data.lottery_count < 5) {
+                    return showNotification('Bạn chưa mua đủ 5 vé số trong ngày hôm nay!');
+                }
+
+                currentUser.daily_data.lottery_claimed_date = today;
+                currentUser.balance += 75;
+
+                addHistory(currentUser.acc, 'plus', 75, 'Hoàn thành nhiệm vụ mua 5 vé số');
+                saveData();
+                showNotification('Nhận thành công 75 Points thưởng mua vé số!');
+                updateHomeUI();
+            });
         }
 
         function updateHistoryUI() {
@@ -659,9 +800,8 @@
             } else {
                 label.innerText = '';
             }
-        }
-
-        function transferMoney() {
+    }
+            function transferMoney() {
             let toAcc = document.getElementById('trans-acc').value;
             let amount = parseInt(document.getElementById('trans-amount').value);
             let pass = document.getElementById('trans-pass').value;
@@ -718,7 +858,7 @@
                 switchTab('home');
             });
         }
-                // --- TÍNH NĂNG MỚI: TẠO MÃ GAME TRỰC TUYẾN ---
+        // --- TÍNH NĂNG MỚI: TẠO MÃ GAME TRỰC TUYẾN ---
         function generateGameCode(amount) {
             if(!currentUser) return showNotification('Vui lòng đăng nhập trước!');
 
@@ -827,19 +967,31 @@
                 }
 
                 currentUser.balance -= 10;
+                // Cập nhật bộ đếm nhiệm vụ mua vé số hàng ngày
+                const today = new Date().toLocaleDateString();
+                if(!currentUser.daily_data) {
+                    currentUser.daily_data = { last_login_date: "", lottery_bought_date: today, lottery_count: 0, lottery_claimed_date: "" };
+                }
+                if(currentUser.daily_data.lottery_bought_date !== today) {
+                    currentUser.daily_data.lottery_bought_date = today;
+                    currentUser.daily_data.lottery_count = 0;
+                }
+                currentUser.daily_data.lottery_count += 1;
+
                 addHistory(currentUser.acc, 'minus', 10, 'Mua 1 vé số');
                 
                 let code = 'VS' + Math.random().toString(36).substring(2, 6).toUpperCase();
-                let rand = Math.floor(Math.random() * 100) + 1;
+                let rand = Math.random() * 100; // sử dụng số thực để chia tỉ lệ phần trăm chính xác tuyệt đối
                 let prize = 0;
                 
-                if (rand <= 60) prize = 0;
-                else if (rand <= 75) prize = 10;
-                else if (rand <= 83) prize = 20;
-                else if (rand <= 90) prize = 25;
-                else if (rand <= 95) prize = 50;
-                else if (rand <= 98) prize = 100;
-                else prize = 1000;
+                // Sửa tỉ lệ vé số chính xác theo yêu cầu mới
+                if (rand < 60.0) prize = 0;                // 60% Chúc may mắn lần sau
+                else if (rand < 75.0) prize = 10;         // 15% Trúng 10 points
+                else if (rand < 87.0) prize = 20;         // 12% Trúng 20 points
+                else if (rand < 95.0) prize = 25;         // 8% Trúng 25 points
+                else if (rand < 98.0) prize = 100;        // 3% Trúng 100 points
+                else if (rand < 99.5) prize = 500;        // 1.5% Trúng 500 points
+                else prize = 1000;                        // 0.5% Trúng 1000 points
 
                 lotteryCodes[code] = prize;
                 saveData();
